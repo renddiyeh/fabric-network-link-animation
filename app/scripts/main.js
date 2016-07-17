@@ -1,24 +1,34 @@
 const settings = {
   width: 800,
-  height: 600
+  height: 600,
+  maxDistance: 300,
+  maxLink: 4,
 };
 
 class Dot extends fabric.Circle {
   constructor(options) {
     super(options);
-    this.triggered = false;
+    this.links = 0;
+    this.setRadius(5);
+    this.setColor('green');
     this.originX = 'center';
     this.originY = 'center';
-  }
-
-  get position() {
-    return [this.left, this.top];
   }
 
   static distance(a, b) {
     const dx = a.left - b.left;
     const dy = a.top - b.top;
     return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  static linkOrigin(a, b) {
+    const dx = a.left - b.left;
+    const dy = a.top - b.top;
+
+    return {
+      x: dx > 0 ? 'right' : 'left',
+      y: dy < 0 ? 'top' : 'bottom'
+    };
   }
 }
 
@@ -27,13 +37,15 @@ class Frame extends fabric.StaticCanvas {
     super(el, options);
     this.dots = {};
     this.dotsId = [];
+    this.velocity =20;
   }
 
   addDots(count = 1) {
     for (let i = count - 1; i >= 0; i--) {
       const dot = new Dot({
-        radius: 20, fill: 'green', left: _.random(settings.width), top: _.random(settings.height)
+        left: _.random(settings.width), top: _.random(settings.height)
       });
+      dot.id = i;
       this.dots[i] = dot;
       this.dotsId.push(i);
 
@@ -41,31 +53,58 @@ class Frame extends fabric.StaticCanvas {
     }
   }
 
-  dot(id) {
-    return this.dots[id];
-  }
+  linkDots(dotA, dotB) {
+    // dotA.links += 1;
+    dotB.links += 1;
+    const distance = Dot.distance(dotA, dotB);
+    const linkOrigin = Dot.linkOrigin(dotA, dotB);
+    const link = new fabric.Line([dotA.left, dotA.top, dotB.left, dotB.top], {
+      stroke: 'black',
+      strokeWidth: 1,
+      scaleX: 0,
+      scaleY: 0,
+      originX: linkOrigin.x,
+      originY: linkOrigin.y,
+    });
 
-  linkDots(a, b) {
-    const dotA = this.dots[a];
-    const dotB = this.dots[b];
-    const link = new fabric.Line([dotA.left, dotA.top, dotB.left, dotB.top], { stroke: 'black' });
+    const animation = {
+      onChange: this.renderAll.bind(this),
+      duration: distance / this.velocity * 100,
+      easing: fabric.util.ease.quadOut,
+      onComplete: () => {
+        this.linkNearestDots(dotB);
+      }
+    };
+
+    link.animate({
+      scaleX: 1,
+      scaleY: 1,
+    }, animation);
 
     this.add(link);
   }
 
-  linkNearestDots(id) {
-    const distances = this.dotsId.filter(i => i !== id).map(i => ({
-      id: i,
-      distance: Dot.distance(this.dots[id], this.dots[i])
-    })).sort((a, b) => a.distance - b.distance);
-    _.take(distances, 2).forEach(d => {
-      this.linkDots(id, d.id);
-    });
+  linkNearestDots(dot) {
+    if (dot.links < settings.maxLink) {
+      dot.links += 1;
+      const distances = this.dotsId.filter(i => i !== dot.id && this.dots[i].links < settings.maxLink)
+        .map(i => ({
+          id: i,
+          distance: Dot.distance(dot, this.dots[i])
+        }))
+        .filter(i => i.distance < settings.maxDistance)
+        .sort((a, b) => a.distance - b.distance);
+
+      _.take(distances, settings.maxLink).forEach(d => {
+        this.linkDots(dot, this.dots[d.id]);
+      });
+    }
+
   }
 }
 
 // create a wrapper around native canvas element (with id="c")
 const frame = new Frame('canvas', settings);
 
-frame.addDots(5);
-frame.linkNearestDots(2);
+frame.addDots(40);
+frame.linkNearestDots(frame.dots[0]);
