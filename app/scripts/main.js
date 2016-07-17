@@ -37,7 +37,19 @@ class Frame extends fabric.StaticCanvas {
     super(el, options);
     this.dots = {};
     this.dotsId = [];
-    this.velocity =20;
+    this.velocity = 20;
+  }
+
+  addDot(left, top) {
+    const dot = new Dot({
+      left,
+      top
+    });
+    const id = this.dotsId.length;
+    this.dotsId.push(id);
+    this.dots[id] = dot;
+
+    this.add(dot);
   }
 
   addDots(count = 1) {
@@ -54,7 +66,6 @@ class Frame extends fabric.StaticCanvas {
   }
 
   linkDots(dotA, dotB) {
-    // dotA.links += 1;
     dotB.links += 1;
     const distance = Dot.distance(dotA, dotB);
     const linkOrigin = Dot.linkOrigin(dotA, dotB);
@@ -106,5 +117,19 @@ class Frame extends fabric.StaticCanvas {
 // create a wrapper around native canvas element (with id="c")
 const frame = new Frame('canvas', settings);
 
-frame.addDots(40);
+const cirleSetting = {
+  center: {
+    x: settings.width / 2,
+    y: settings.height / 2,
+  },
+  radius: 200,
+  count: 24
+};
+
+for (let i = cirleSetting.count - 1; i >= 0; i--) {
+  const x = cirleSetting.center.x + cirleSetting.radius * Math.cos(2 * Math.PI * i / cirleSetting.count);
+  const y = cirleSetting.center.y + cirleSetting.radius * Math.sin(2 * Math.PI * i / cirleSetting.count);
+  frame.addDot(x, y);
+}
+
 frame.linkNearestDots(frame.dots[0]);
