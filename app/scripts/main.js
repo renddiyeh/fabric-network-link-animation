@@ -79,7 +79,7 @@ class Frame extends fabric.StaticCanvas {
     });
 
     const animation = {
-      onChange: this.renderAll.bind(this),
+      onChange: this.renderAll.bind(this), // just copy and paste from official tutorial
       duration: distance / this.velocity * 100,
       easing: fabric.util.ease.quadOut,
       onComplete: () => {
@@ -114,7 +114,6 @@ class Frame extends fabric.StaticCanvas {
   }
 }
 
-// create a wrapper around native canvas element (with id="c")
 const frame = new Frame('canvas', settings);
 
 const cirleSetting = {
@@ -123,13 +122,15 @@ const cirleSetting = {
     y: settings.height / 2,
   },
   radius: 200,
-  count: 24
+  count: 36
 };
-
+/*
 for (let i = cirleSetting.count - 1; i >= 0; i--) {
   const x = cirleSetting.center.x + cirleSetting.radius * Math.cos(2 * Math.PI * i / cirleSetting.count);
   const y = cirleSetting.center.y + cirleSetting.radius * Math.sin(2 * Math.PI * i / cirleSetting.count);
   frame.addDot(x, y);
 }
+*/
+frame.addDots(50);
 
 frame.linkNearestDots(frame.dots[0]);
